@@ -4,7 +4,6 @@ game.States={};
 game.States.boot=function(){
     this.preload=function(){
         if(!game.device.desktop){//移动设备
-            alert('这是在移动设备');
             this.scale.scaleMode=Phaser.ScaleManager.SHOW_ALL;
             this.scale.forcePortrait=true;
             this.scale.refresh();

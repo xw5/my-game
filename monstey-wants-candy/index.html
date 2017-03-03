@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Cache-Control" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>monstey-wants-sandy</title>
+    <style>
+        body{
+            margin:0;
+        }
+        #monsteyWantsSandy,body,html{
+            width:100%;
+            height:100%;
+            overflow:hidden;
+        }
+        #monsteyWantsSandy canvas{
+            margin:0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="monsteyWantsSandy"></div>
+    <script src="./js/phaser.js"></script>
+    <script src="./js/boot.js"></script>
+    <script src="./js/preloader.js"></script>
+    <script src="./js/main-menu.js"></script>
+    <script src="./js/game.js"></script>
+    <script>
+        var game=new Phaser.Game(640,960,Phaser.AUTO,'monsteyWantsSandy');
+        //定义游戏要用到的场景
+        game.state.add('Boot',Candy.Boot);
+        game.state.add('Preloader',Candy.Preloader);
+        game.state.add('MainMenu',Candy.MainMenu);
+        game.state.add('Game',Candy.Game);
+        game.state.start('Boot');//启动初始化场景
+    </script>  
+</body>
+</html>
