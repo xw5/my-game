@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>小恐龙接苹果</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=0">
+    <style type="text/css">
+        body{margin:0;}
+        #game_scene{
+            width:320px;
+            height:568px;
+            margin:0 auto;
+        }
+    </style>
+    <script type="text/javascript" src="./lib/phaser.js"></script>
+</head>
+<body>
+    <div id="game_scene"></div>
+    <script type="text/javascript">
+        //初始化游戏
+        var game = new Phaser.Game(320,568,Phaser.CANVAS,'game_scene');
+
+        //预加载资源场景
+        var loadingState = {
+            preload:function(){
+                console.log('loading_preload');
+                var _this = this;
+                game.stage.backgroundColor = '#000';
+                //game.load.crossOrigin ="anonymous";
+                game.load.image('bg', './assets/images/bg.png');
+                game.load.image('dude', './assets/images/dude.png');
+                game.load.image('green', './assets/images/green.png');
+                game.load.image('red', './assets/images/red.png');
+                game.load.image('yellow', './assets/images/yellow.png');
+                game.load.image('bomb', './assets/images/bomb.png');
+                game.load.image('five', './assets/images/five.png');
+                game.load.image('three', './assets/images/three.png');
+                game.load.image('one', './assets/images/one.png');
+                game.load.audio('bgMusic', './assets/audio/bgMusic.mp3');
+                game.load.audio('bombMusic', './assets/audio/boom.mp3');
+                game.load.audio('scoreMusic', './assets/audio/addscore.mp3');
+
+                //所有文件加载完了
+                game.load.onLoadComplete.add(function(){
+                    console.log('loading_preload');
+                    this.onload();
+                },this);
+
+                //loading文本展示
+                this.progressText = game.add.text(game.world.centerX,game.world.centerY,'0%',{
+                    fontSize:'40px',
+                    fill:'#fff'
+                });
+                this.progressText.anchor.setTo(0.5,0.5);
+
+                //加载进度监听
+                game.load.onFileComplete.add(function(per){
+                    this.progressText.text = per+'%';
+                },this);
+
+                //防止资源过快加载完闪屏
+                setTimeout(function(){
+                    _this.deadLine = true;
+                },3000)
+            },
+            onload:function(){
+                var _this = this;
+                if(this.deadLine){
+                    game.state.start('welcomeState');
+                }else{
+                    setTimeout(function(){_this.onload()},1000);
+                }
+            }
+        };
+
+        //欢迎界面
+        var welcomeState = {
+            create:function(){
+                console.log('welcomeState create');
+                this.worldCenterX = game.world.centerX;
+
+                this.bg = game.add.image(0,0,'bg');
+                this.bg.width = game.world.width;
+                this.bg.height = game.world.height;
+
+                this.title = game.add.text(this.worldCenterX,game.world.centerY * 0.25,'小恐龙接苹果',{
+                    fontSize:'20px',
+                    fill:'#f2bb15'
+                });
+                this.title.anchor.setTo(0.5,0.5);
+
+                this.remind = game.add.text(this.worldCenterX,game.world.centerY,'点击任意位置开始',{
+                    fontSize:'20px',
+                    fill:'#f2bb15'
+                });
+                this.remind.anchor.setTo(0.5,0.5);
+
+                this.man = game.add.sprite(this.worldCenterX,game.world.height * 0.75,'dude');
+                this.manImage = game.cache.getImage('dude');
+                this.man.width = game.world.width * 0.2;
+                this.man.height = this.man.width / this.manImage.width * this.manImage.height;
+                this.man.anchor.setTo(0.5,0.5);
+
+                game.input.onTap.add(function(){
+                    game.state.start('playState');
+                })
+
+            }
+        };
+
+        //游戏主界面
+        var playState = {
+            init:function(){
+                console.log('playState init')
+            },
+            preload:function(){
+                console.log('playState preload');
+            },
+            create:function(){
+                var _this = this;
+                this.bg = game.add.image(0,0,'bg');
+                this.bg.width = game.world.width;
+                this.bg.height = game.world.height;
+                this.score = 0;
+                this.scoreText = game.add.text(game.world.centerX,game.world.centerY*0.5,this.score,{
+                    fontSize:'40px',
+                    fill:'#f2bb15'
+                });
+                this.scoreText.anchor.setTo(0.5,0.5);
+
+                this.man = game.add.sprite(game.world.centerX,game.world.height * 0.75,'dude');
+                this.manImage = game.cache.getImage('dude');
+                this.man.width = game.world.width * 0.2;
+                this.man.height = this.man.width / this.manImage.width * this.manImage.height;
+                this.man.anchor.setTo(0.5,0.5);
+
+                game.physics.enable(this.man);//加入物理运动
+                this.man.body.allowGravity = false;//消除重力影响
+
+                if(!this.bgMusic){
+                    this.bgMusic = game.add.audio('bgMusic');
+                    this.bgMusic.loopFull();
+                }
+                this.bombMusic = game.add.audio('bombMusic');
+                this.scoreMusic = game.add.audio('scoreMusic');
+
+                //随机生成苹果
+                this.apples = game.add.group();
+                this.appleTypes = ['green','red','yellow','bomb'];
+                //创建一个定时器
+                this.appleTimer = game.time.create(true);
+                this.appleTimer.loop(1000,function(){
+                    var type = _this.appleTypes[Math.floor(Math.random() * _this.appleTypes.length)];
+                    var appleImg = game.cache.getImage(type);
+                    var typeW = game.world.width / 8;
+                    var typeH = typeW / appleImg.width * appleImg.height;
+                    var x = Math.random() * (game.world.width-typeW);
+                    var apple = _this.apples.create(x,0,type);
+
+                    apple.width = typeW;
+                    apple.height = typeH;
+
+                    //启用苹果的物理特性
+                    game.physics.enable(apple);
+
+                    //苹果与边缘检测
+                    apple.body.collideWorldBounds = true;
+                    apple.body.onWorldBounds = new Phaser.Signal();
+                    apple.body.onWorldBounds.add(function(apple, up, down, left, right){
+                        //与下边界碰撞的时候才结束游戏
+                        if(down){
+                            apple.kill();
+                            if(apple.key !== 'bomb') game.state.start('overState',true,false,_this.score);
+                        }
+                    });
+
+                });
+                this.appleTimer.start();
+
+                //开启物理引擎
+                game.physics.startSystem(Phaser.Physics.Arcade);
+                game.physics.arcade.gravity.y = 300;
+
+                this.touching = false;
+                game.input.onDown.add(function(pointer){
+                    if(Math.abs(pointer.x - this.man.x) < this.man.width/2) this.touching = true;
+                },this);
+                game.input.onUp.add(function(){
+                    this.touching = false;
+                },this);
+                game.input.addMoveCallback(function(pointer,x,y,isTap){
+                    //console.log(x,y,isTap);
+                    if(!isTap && this.touching) this.man.x = x;
+                },this);
+            },
+            update:function(){
+
+                //检测碰撞
+                game.physics.arcade.overlap(this.man,this.apples,this.pickApple,null,this);
+            },
+            pickApple:function(man,apple){
+                if(apple.key == 'bomb'){
+                    this.bombMusic.play();
+                    game.state.start('overState',true,false,this.score);
+                }else{
+                    this.point = 1;
+                    this.img = 'one';
+                    console.log(apple);
+                    if(apple.key == 'red'){
+                        this.point = 3;
+                        this.img = 'three';
+                    }else if(apple.key == 'yellow'){
+                        this.point = 5;
+                        this.img = 'five';
+                    }
+                    this.goal = game.add.image(apple.x,apple.y,this.img);
+                    this.goalImg = game.cache.getImage(this.img);
+                    this.goal.width = apple.width;
+                    this.goal.height = this.goal.width / (this.goalImg.width/this.goalImg.height);
+                    this.goal.alpha = 0;
+
+                    this.showTween = game.add.tween(this.goal).to({
+                        alpha:1,
+                        y:this.goal.y - 20
+                    },100,Phaser.Easing.Linear.None,true,0,0,false);
+                    this.showTween.onComplete.add(function(){
+                        this.hideTween = game.add.tween(this.goal).to({
+                            alpha:0,
+                            y:this.goal.y - 20
+                        },100,Phaser.Easing.Linear.None,true,200,0,false);
+                        this.hideTween.onComplete.add(function(){
+                            this.goal.kill();
+                        },this);
+                    },this);
+                    apple.kill();
+                    this.score = this.score+this.point;
+                    this.scoreText.text = this.score;
+                    this.scoreMusic.play();
+                }
+
+            }
+        };
+
+        //结束界面
+        var overState = {
+            init:function(){
+                this.score = arguments[0];
+            },
+            create:function(){
+                console.log('welcomeState create');
+                this.worldCenterX = game.world.centerX;
+
+                this.bg = game.add.image(0,0,'bg');
+                this.bg.width = game.world.width;
+                this.bg.height = game.world.height;
+
+                this.title = game.add.text(this.worldCenterX,game.world.centerY * 0.25,'游戏结束',{
+                    fontSize:'40px',
+                    fontWeight:'bold',
+                    fill:'#f2bb15'
+                });
+                this.title.anchor.setTo(0.5,0.5);
+
+                this.scoreStr = '你的得分是:' + this.score + '分';
+                this.scoreText = game.add.text(game.world.centerX,game.world.height * 0.4,this.scoreStr,{
+                    fontSize:'30px',
+                    fontWeight:'bold',
+                    fill:'#f2bb15'
+                });
+                this.scoreText.anchor.setTo(0.5,0.5);
+
+                this.remind = game.add.text(game.world.centerX,game.world.height * 0.6 ,'点击任意位置再玩一次',{
+                    fontSize:'20px',
+                    fontWeight:'bold',
+                    fill:'#f2bb15'
+                });
+                this.remind.anchor.setTo(0.5,0.5);
+
+                game.input.onTap.add(function(){
+                    game.state.start('playState');
+                })
+
+            }
+        };
+
+        //添加场景
+        game.state.add('loadingState',loadingState);
+        game.state.add('welcomeState',welcomeState);
+        game.state.add('playState',playState);
+        game.state.add('overState',overState);
+
+        //开始加载资源场景
+        game.state.start('loadingState');
+    </script>
+</body>
+</html>
